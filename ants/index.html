@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Ants</title>
+		<style>
+			html, body{
+				margin: 0;
+				padding: 0;
+				overflow: hidden;
+			}
+			#game{
+				background-color: #a2a2a2;
+				width: 100vw;
+				height: 100vh;
+			}
+			#foodCollected{
+				position: absolute;
+				top: 5px;
+				right: 5px;
+				font-size: 3em;
+				color: black;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id="game"></canvas>
+		<a id="foodCollected">0</a>
+		<script src="Graph.js"></script>
+		<script src="Ant.js"></script>
+		<script src="ants.js"></script>
+		<script>
+			window.onload = init;
+		</script>
+	</body>
+</html>
