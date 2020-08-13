@@ -20,7 +20,7 @@ const Ant = function(){
 				else p[i] = 10;
 			}
 			for(var i = 0; i < options.length; i++){
-				if(options[i] === previous && previous != 0) continue;
+				if(options[i] === previous) continue;
 				var edge = null;
 				for(var j = 0; j < graph.edges.length; j++){
 					if(graph.edges[j][0] === this.node && graph.edges[j][1] === options[i]) edge = j;
@@ -50,7 +50,7 @@ const Ant = function(){
 		}else if(this.state == 0 && this.foundFood){
 			this.pathPosition++;
 			choice = this.path[this.pathPosition];
-		}else if(this.state == 1){
+		}else if(this.state == 1 || this.state == 2){
 			this.pathPosition--;
 			choice = this.path[this.pathPosition];
 		}
@@ -58,10 +58,16 @@ const Ant = function(){
 		return choice;
 	}
 	this.targetDelta = function(){
+		if(this.targetNode === this.node){
+			this.ticks = 0;
+			this.targetTicks = 1;
+			return {x: 0, y: 0};
+		}
+		
 		var dx = graph.nodes[this.targetNode].x - graph.nodes[this.node].x;
 		var dy = graph.nodes[this.targetNode].y - graph.nodes[this.node].y;
-		var hyp = Math.sqrt( graph.nodeDistSq(graph.nodes[this.targetNode], graph.nodes[this.node]) );
-		
+		var hyp = Math.sqrt( dx*dx + dy*dy );
+				
 		var delta = {
 			x: this.speed * (dx / hyp),
 			y: this.speed * (dy / hyp)			
@@ -70,16 +76,21 @@ const Ant = function(){
 		this.ticks = 0;
 		this.targetTicks = Math.floor(dx / delta.x);
 		
+		if(delta.x === NaN || delta.y === NaN) {
+			delta.x = 0;
+			delta.y = 0;
+			this.targetTicks = 0;
+			return delta;
+		}
+		
+		
 		var edge = null;
 		for(var i = 0; i < graph.edges.length; i++){
 			if(graph.edges[i][0] === this.node && graph.edges[i][1] === this.targetNode) { edge = i; break; }
 			else if(graph.edges[i][1] === this.node && graph.edges[i][0] === this.targetNode) { edge = i; break; }
 		}
 		if(this.state === 1){
-			pheromones[edge] += 40;
-			setTimeout(function(){
-				pheromones[edge] -= 40;
-			}, 15*this.targetTicks + 10*1000);
+			pheromones[edge] += 3*this.targetTicks;
 		}
 		
 		return delta;
@@ -87,7 +98,7 @@ const Ant = function(){
 	
 	this.x = graph.nodes[0].x;
 	this.y = graph.nodes[0].y;
-	this.speed = param.antSpeed + 0.2*(Math.random() - 0.5)
+	this.speed = (param.antSpeed + 0.2*(Math.random() - 0.5)) / Math.sqrt(canvas.clientWidth*canvas.clientHeight);
 	this.node = 0;
 	this.state = 0;
 	this.food = 0;
@@ -98,12 +109,13 @@ const Ant = function(){
 	this.delta = this.targetDelta();
 	/*
 	0 - looking for food (wanders until food is found)
-	1 - found food (try to find home leaving pheromone along the way)
+	1 - return home leaving pheromone
+	2 - return home
 	*/
 	
 	this.offset = {
-		x: Math.floor( Math.random() * param.antOffset * 2 ) - param.antOffset,
-		y: Math.floor( Math.random() * param.antOffset * 2 ) - param.antOffset
+		x: Math.floor( Math.random() * param.antOffset),
+		y: Math.floor( Math.random() * param.antOffset)
 	}
 	
 	this.tick = function(){
@@ -125,8 +137,10 @@ const Ant = function(){
 						this.pathPosition = this.path.length - 2;
 						this.foundFood = true;
 						break;
-					}else if(food[i].node === this.node && food[i].amount < 5){
+					}else if(food[i].node === this.node && food[i].amount < 5 && food[i].node === this.path[this.path.length - 1]){
 						this.foundFood = false;
+						this.state = 2;
+						this.pathPosition = this.path.length - 2;
 						break;					
 					}
 				}
@@ -142,6 +156,12 @@ const Ant = function(){
 				}
 			}
 			
+			if(this.path.length > graph.edges.length * 1.2) {
+				this.state == 2;
+				this.pathPosition = this.path.length - 2;
+				console.log('i got lost');
+			}
+			
 			this.targetNode = this.newTarget(previousNode);
 			this.delta = this.targetDelta();
 			
@@ -153,12 +173,15 @@ const Ant = function(){
 	}
 	
 	this.color = function(){
+		if(!param.debug) return '#000';
 		switch(this.state){
 			case 0:
 				if(this.foundFood) return '#4242ad';
 				else return '#000';
 			case 1:
 				return '#fff';
+			case 2:
+				return '#00fff7';
 		}
 	}
 }

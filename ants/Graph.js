@@ -9,7 +9,7 @@ const Graph = function(){
 	this.nodes = [];
 	this.edges = [];
 	
-	this.generate = function(width, height, minNodes=10, maxNodes=40, minRadius=40, margin=10, numClosedLoops=4, minAngle=15){
+	this.generate = function(minNodes=10, maxNodes=40, minRadius=0.001, margin=0.05, numClosedLoops=4, minAngle=15){
 		minAngle = minAngle * (Math.PI / 180);
 		var numNodes = Math.floor( Math.random() * (maxNodes - minNodes) ) + minNodes;
 		for(var i = 0; i < numNodes; i++) {
@@ -18,8 +18,8 @@ const Graph = function(){
 			
 			do{
 				nNode = {
-					x: Math.floor( Math.random() * (width  - 2*margin) ) + margin,
-					y: Math.floor( Math.random() * (height - 2*margin) ) + margin
+					x: Math.random() * (1 - 2*margin) + margin,
+					y: Math.random() * (1 - 2*margin) + margin
 				}
 				
 				newNodeFound = true;
@@ -29,6 +29,7 @@ const Graph = function(){
 			
 			this.nodes.push(nNode);
 		}
+		console.log('Nodes Generated...');
 		
 		//generate edges of closest nodes
 		for(var i = 0; i < this.nodes.length; i++){
@@ -59,14 +60,22 @@ const Graph = function(){
 			
 			if(unique) this.edges.push(edge);
 		}
+		console.log('Closest Edges Generated...');
 		
 		//connect closest two nodes that are unconnected
 		for(var i = 0; i < this.nodes.length; i++){
 			var closest = null;
 			var dist = Infinity;
+			var connectedNodes = this.getAllConnectedNodes(i);
+			if(connectedNodes.length >= this.nodes.length - 1) break;
 			
-			for(var j = 0; j < this.nodes.length; j++){
-				if(i === j || this.connected(i, j)) continue;
+			for(var j = i+1; j < this.nodes.length; j++){
+				
+				if(connectedNodes.includes(j)) continue;
+				
+				var d = this.nodeDistSq(this.nodes[i], this.nodes[j]);
+				
+				if(d > dist) continue;
 				
 				//check if new edge would intersect with any other edge
 				var intersect = false;
@@ -98,7 +107,6 @@ const Graph = function(){
 				}
 				if(tooClose) continue;
 				
-				var d = this.nodeDistSq(this.nodes[i], this.nodes[j]);
 				if(d < dist) {
 					dist = d;
 					closest = j;
@@ -108,7 +116,6 @@ const Graph = function(){
 			if(closest == null) continue;
 			
 			var edge  = [i, closest];
-			var edge2 = [closest, i];
 			
 			var unique = true;
 			for(var e of this.edges){
@@ -119,6 +126,7 @@ const Graph = function(){
 			}
 			if(unique) this.edges.push(edge);
 		}
+		console.log('Closest Graphs Generated...');
 		
 		// connect two furthest away nodes without intersection
 		// at this point all nodes are connected, but there should be no closed loops
@@ -182,6 +190,7 @@ const Graph = function(){
 				this.edges.push(edge);
 			}
 		}
+		console.log('Closed Loops Generated..');
 	}
 	
 	this.nodeDistSq = function(a, b){
